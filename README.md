@@ -24,12 +24,18 @@ _Audit fields_: Created By, Create Date, Updated By, Update Date
 0. ~~Add config, clone from existing config, update & delete config~~
 1. ~~Add stock: Choose a config, select quantity x. App would create x number of stocks. Each field can be edited manually. Additionally have the option to scan the Serial#~~
 ~~2. Sell stock: Choose a serial number, price (add multiple serial# for sale), customer name, customer mobile, address, remarks~~
-3. Swap stock: Swap sold stock with unsold stock. Update remarks
-4. Modify stock: Edit stock details, only admin has this functionality
-5. Delete stock: Admin only functionality
-6. View stock details: Dashboard, filters & Reports
-7. Create / update other users: Owner, Admin, User
-8. Change password for self
+~~3. Swap stock: Swap sold stock with unsold stock. Update remarks~~
+~~4. Modify stock: Edit stock details, only admin has this functionality~~
+~~5. Delete stock: Admin only functionality~~
+~~6. View stock details: Dashboard, filters & Reports~~
+~~7. Create / update other users: Owner, Admin, User~~
+~~8. Change password for self~~
+
+##### TODO: 
+
+9. Security for all the APIs created as appropriate
+10. Add appropriate API filters for all the GET methods - asset_config, sale
+11. Add the created by, updated by fields
 
 ##### User Types
 

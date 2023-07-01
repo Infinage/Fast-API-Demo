@@ -1,5 +1,4 @@
 from fastapi import APIRouter, status, Body
-from fastapi.responses import JSONResponse
 from data.db.client import mongo_client
 from data.models.asset_config import AssetConfig, UpdateAssetConfig
 import datetime as dt
@@ -12,21 +11,10 @@ asset_config_router = APIRouter(
 )
 
 @asset_config_router.get("/", description="Get Configuration(s)", response_model=ResponseModel)
-async def get_configurations(id: str = ""):
+async def get_configurations():
     configs: list[dict] = []
-    if (id):
-        if ObjectId.is_valid(id):
-            config = await mongo_client.asset_config.find_one({"_id": ObjectId(id)})
-            if config:
-                configs.append(config)
-            else:
-                return ResponseModel(status_code=status.HTTP_404_NOT_FOUND, message=f"The Object ID: {id} doesn't exist.")
-        else:
-            return ResponseModel(status_code=status.HTTP_400_BAD_REQUEST, message=f"Please enter a valid object ID.")
-    else:
-        async for config in mongo_client.asset_config.find({}):
-            configs.append(config)
-
+    async for config in mongo_client.asset_config.find({}):
+        configs.append(config)
     return ResponseModel(content=configs)
 
 @asset_config_router.post("/", response_model=ResponseModel)

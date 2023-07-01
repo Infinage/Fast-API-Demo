@@ -1,6 +1,6 @@
 from data.models.base import MongoBaseModel
 from enum import Enum
-from pydantic import Field
+from typing import Optional
 
 class UserTypeEnum(str, Enum):
     owner="owner"
@@ -9,16 +9,36 @@ class UserTypeEnum(str, Enum):
 
 class User(MongoBaseModel):
     
-    user: str = Field(alias="_id")
+    username: str
     password: str
     type: UserTypeEnum
+    disabled: bool = False
+
+    def __getitem__(self, item):
+        return getattr(self, item)
 
     class Config:
         allow_population_by_field_name = True
         schema_extra = {
             "example": {
-                "user": "owner",
+                "username": "owner",
                 "password": "owner",
                 "type": "owner"
+            }
+        }
+
+class UpdateUser(MongoBaseModel):
+    
+    password: Optional[str]
+    disabled: Optional[bool]
+    deleted: Optional[bool]
+
+    class Config:
+        allow_population_by_field_name = True
+        schema_extra = {
+            "example": {
+                "password": "updated-password",
+                "disabled": False,
+                "deleted": False
             }
         }

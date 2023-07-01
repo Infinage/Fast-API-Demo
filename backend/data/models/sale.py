@@ -12,7 +12,7 @@ class UserTypeEnum(str, Enum):
 
 class Sale(MongoBaseModel):
 
-    serial_num: str
+    serial: str
     price: float = Field(..., gt=0)
     sale_date: datetime
     customer_name: str
@@ -24,7 +24,7 @@ class Sale(MongoBaseModel):
         allow_population_by_field_name = True
         schema_extra = {
             "example": {
-                "serial_num": "123456789",
+                "serial": "123456789",
                 "price": 70000.0,
                 "sale_date": "2023-06-29 00:55:29.033394",
                 "customer_name": "ABCDEF",
@@ -35,13 +35,13 @@ class Sale(MongoBaseModel):
         }
 
 class StockSale(BaseModel):
-    serial_num: str
+    serial: str
     price: float = Field(..., gt=0)
 
     class Config:
         schema_extra = {
             "example": {
-                "serial_num": "123456789",
+                "serial": "123456789",
                 "price": 70000.0
             }
         }
@@ -58,8 +58,8 @@ class SaleRequestObject(MongoBaseModel):
         schema_extra = {
             "example": {
                 "sales": [
-                    { "serial_num": "123456789", "price": 70000.0 },
-                    { "serial_num": "987654321", "price": 50000.0 },
+                    { "serial": "123456789", "price": 70000.0 },
+                    { "serial": "987654321", "price": 50000.0 },
                 ],
                 "sale_date": "2023-06-29 00:55:29.033394",
                 "customer_name": "Xyz",

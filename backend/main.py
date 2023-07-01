@@ -1,13 +1,13 @@
 from fastapi import FastAPI
 import uvicorn
-from utils.util import load_dotenv
+from utils.util import settings
 from data.db.client import mongo_client
 from controllers.asset_config import asset_config_router
 from controllers.stock import stock_router
 from controllers.sale import sale_router
+from controllers.user import user_router
 
 app = FastAPI(swagger_ui_parameters={"defaultModelsExpandDepth": 0})
-settings = load_dotenv(".env")
 
 @app.get("/", tags=["ping"])
 async def ping():
@@ -17,13 +17,14 @@ async def ping():
 app.include_router(asset_config_router)
 app.include_router(stock_router)
 app.include_router(sale_router)
+app.include_router(user_router)
 
 @app.on_event("startup")
 async def startup_db_client():
-    USERNAME = settings['MONGO_INITDB_ROOT_USERNAME']
-    PASSWORD = settings['MONGO_INITDB_ROOT_PASSWORD']
-    URL = settings['MONGO_URL']
-    DB_NAME = settings['MONGO_INITDB_DATABASE']
+    USERNAME = settings['MONGO.INITDB_ROOT_USERNAME']
+    PASSWORD = settings['MONGO.INITDB_ROOT_PASSWORD']
+    URL = settings['MONGO.URL']
+    DB_NAME = settings['MONGO.INITDB_DATABASE']
 
     # CONNECTION_STRING = f"mongodb+srv://{USERNAME}:{PASSWORD}@{URL}/{DB_NAME}?retryWrites=true&w=majority"
     CONNECTION_STRING = f"mongodb://{USERNAME}:{PASSWORD}@{URL}/{DB_NAME}?authSource=admin&retryWrites=true&w=majority"
@@ -37,7 +38,7 @@ async def shutdown_db_client():
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",
-        host=settings["HOST"],
-        reload=(settings["DEBUG_MODE"] == "True"),
-        port=int(settings["PORT"])
+        host=settings["SERVER.HOST"],
+        reload=(settings["SERVER.DEBUG_MODE"] == "True"),
+        port=int(settings["SERVER.PORT"])
     )

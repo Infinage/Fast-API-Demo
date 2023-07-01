@@ -3,16 +3,20 @@ from fastapi import status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, validator
 from fastapi.encoders import jsonable_encoder
+import inspect
 
 def load_dotenv(fp: str) -> dict[str, str]:
     config: dict[str, str] = {}
     with open(fp, "r") as f:
             for line in f.readlines():
-                if len(line) > 1:
+                if len(line) > 1 and line[0] != '#':
                     key, value = line.split("=")
                     config[key.strip()] = value.strip()
 
     return config
+
+def get_class_attributes(clz):
+    return clz.__fields__.keys()
 
 class ResponseModel(BaseModel):
 
@@ -38,3 +42,6 @@ class ResponseModel(BaseModel):
             }, 
             status_code=kwargs["status_code"] if "status_code" in kwargs else status.HTTP_200_OK
         )
+    
+# Load the settings
+settings = load_dotenv(".env")
