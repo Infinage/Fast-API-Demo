@@ -86,6 +86,7 @@ class UpdateStock(MongoBaseModel):
     OS: Optional[str]
     price: Optional[float]
     warranty_years: Optional[float]
+    serial: Optional[str]
     purchase_date: Optional[datetime]
     remarks: Optional[str]
     current_status: Optional[StockStatusEnum]
@@ -113,6 +114,7 @@ class UpdateStock(MongoBaseModel):
                 "OS": "Windows 11 Home ",
                 "price": 50000.0,
                 "warranty_years": 3, 
+                "serial": "123456789",
                 "purchase_date": "2023-06-29 00:55:29.033394",
                 "remarks": "In excellent working condition",
                 "current_status": "new",

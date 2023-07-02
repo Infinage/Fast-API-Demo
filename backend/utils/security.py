@@ -61,6 +61,11 @@ class JWTUtil:
         username: str = payload.get("sub") or "" if payload else ""
         user_in_db = await mongo_client.user.find_one({"username": username}, {"password": 0}) if username else None
         if (user_in_db and not user_in_db["disabled"]):
+
+            # These fields are used when trying to add the audit fields during updates
+            user_in_db["AH_DATE"] = dt.datetime.utcnow
+            user_in_db["AH_USER"] = user_in_db["username"]
+            
             return user_in_db
         else:
             return None
@@ -71,14 +76,20 @@ class UserUtil:
     @staticmethod
     async def is_owner(user: User = Depends(JWTUtil.get_current_user)):
         if not user or not user["type"] == UserTypeEnum.owner:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User must be of type `Owner`.")
+        else:
+            return user
     
     @staticmethod
     async def is_atleast_admin(user: User = Depends(JWTUtil.get_current_user)):
         if not user or not user["type"] in (UserTypeEnum.admin, UserTypeEnum.owner):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User must atleast be of type `Admin`.")
+        else:
+            return user
     
     @staticmethod
     async def is_authenticated(user: User = Depends(JWTUtil.get_current_user)):
         if not user:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User must be logged in.")
+        else:
+            return user

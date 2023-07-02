@@ -19,7 +19,7 @@ user - username, type, password
 
 _Audit fields_: Created By, Create Date, Updated By, Update Date
 
-##### Modules
+##### TODO
 
 0. ~~Add config, clone from existing config, update & delete config~~
 1. ~~Add stock: Choose a config, select quantity x. App would create x number of stocks. Each field can be edited manually. Additionally have the option to scan the Serial#~~
@@ -30,12 +30,9 @@ _Audit fields_: Created By, Create Date, Updated By, Update Date
 6. ~~View stock details: Dashboard, filters & Reports~~
 7. ~~Create / update other users: Owner, Admin, User~~
 8. ~~Change password for self~~
-
-##### TODO: 
-
-9. Security for all the APIs created as appropriate
-10. Add appropriate API filters for all the GET methods - asset_config, sale
-11. Add the created by, updated by fields
+9. ~~Security for all the APIs created as appropriate~~
+10. ~~Add appropriate API filters for all the GET methods~~
+11. ~~Add the created by, updated by fields~~
 
 ##### User Types
 

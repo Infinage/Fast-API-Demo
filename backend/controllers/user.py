@@ -5,7 +5,6 @@ from utils.util import ResponseModel
 from data.models.user import User, UserTypeEnum, UpdateUser
 import datetime as dt
 from typing import Annotated
-from bson import ObjectId
 from utils.security import HashUtil, JWTUtil, UserUtil
 
 user_router = APIRouter(
@@ -13,8 +12,9 @@ user_router = APIRouter(
     tags=["user"]
 )
 
-@user_router.get("/", deprecated=True, response_model=ResponseModel)
+@user_router.get("/", deprecated=True, response_model=ResponseModel, dependencies=[Depends(UserUtil.is_atleast_admin)])
 async def get_all_users():
+    '''Lists all the users. This API might be of use to Admins and Owners, otherwise it's usage discouraged.'''
     users = [user async for user in mongo_client.user.find({}, { "password": 0 })]
     return ResponseModel(content=users)
 
@@ -27,7 +27,11 @@ async def create_user(logged_in_user: Annotated[User, Depends(JWTUtil.get_curren
             (logged_in_user["type"] == UserTypeEnum.user and user.type == UserTypeEnum.user) # User can create only 'users'
         ):
         if (not await mongo_client.user.find_one({ "username": user.username })):
-            user.create_date = dt.datetime.utcnow()
+            
+            # Add the audit fields
+            user.create_date = logged_in_user["AH_DATE"]()
+            user.created_by = logged_in_user["AH_USER"]
+
             user.password = HashUtil.get_password_hash(user.password)
             inserted = await mongo_client.user.insert_one(user.dict())
             new_user = await mongo_client.user.find_one({ "_id": inserted.inserted_id }, { "password": 0 } )
@@ -57,14 +61,14 @@ async def login_user_for_token(form_data: Annotated[OAuth2PasswordRequestForm, D
             message = f"Username and Password doesn't match."
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=message, headers={"WWW-Authenticate": "Bearer"})
     
-@user_router.patch("/{username}")
+@user_router.patch("/{username}", response_model=ResponseModel)
 async def update_user(logged_in_user: Annotated[User, Depends(JWTUtil.get_current_user)], username: str, update_user: UpdateUser):
     '''
     Possible usage: Update allowed only on Password, Disabled fields
 
-        1. Disable / Enable user
-        2. Reset password
-        3. Delete user (only owner)
+    1. Reset password<br>
+    2. Disable / Enable user (Admin & above)<br>
+    3. Delete user (only owner)<br>
 
     '''
     user_to_update: dict = await mongo_client.user.find_one({"username": username})
@@ -84,10 +88,15 @@ async def update_user(logged_in_user: Annotated[User, Depends(JWTUtil.get_curren
             else: 
                 update_result = await mongo_client.user.update_one({"username": username}, {"$set": {
                     "disabled": bool(update_user.disabled), 
+                    "updated_by": logged_in_user["AH_USER"], 
+                    "update_date": logged_in_user["AH_DATE"](), 
                     "password": HashUtil.get_password_hash(update_user.password) if update_user.password else user_to_update["password"]
                 }})
             if update_result:
-                return ResponseModel(content=await mongo_client.user.find_one({"username": username}), message=f"User: {username} updated successfully.")
+                return ResponseModel(
+                    content=await mongo_client.user.find_one({"username": username}), 
+                    message=f"User: {username} {'updated' if not update_user.deleted else 'deleted'} successfully."
+                )
         else:
             return ResponseModel(status_code=status.HTTP_403_FORBIDDEN, message="Insufficient access privileges.")
     else:
@@ -95,7 +104,14 @@ async def update_user(logged_in_user: Annotated[User, Depends(JWTUtil.get_curren
 
 @user_router.get("/me", response_model=ResponseModel)
 async def read_users_me(current_user: Annotated[User, Depends(JWTUtil.get_current_user)]):
+    '''Shows the currently logged in user details.'''
     if current_user:
-        return ResponseModel(content=dict(current_user))
+        cu = dict(current_user)
+
+        # Remove the Audit helper fields
+        cu.pop("AH_DATE", None)
+        cu.pop("AH_USER", None)
+        
+        return ResponseModel(content=cu)
     else:
         return ResponseModel(status_code=status.HTTP_401_UNAUTHORIZED, message="No user currently logged in (or) user is invalid.")

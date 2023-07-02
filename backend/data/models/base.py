@@ -6,6 +6,6 @@ class MongoBaseModel(BaseModel):
 
     # Audit fields
     create_date: Optional[datetime]
-    update_date: datetime = Field(default_factory=datetime.utcnow)
+    update_date: Optional[datetime]
     created_by: Optional[str]
     updated_by: Optional[str]

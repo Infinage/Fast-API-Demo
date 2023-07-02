@@ -1,24 +1,46 @@
-from fastapi import APIRouter, Body, status, Depends
+from fastapi import APIRouter, Body, status, Depends, Query
 from data.models.stock import Stock, StockStatusEnum
 from data.models.sale import Sale, SaleRequestObject
-from utils.util import ResponseModel
+from data.models.user import User
+from utils.util import ResponseModel, get_class_attributes, parse_projections, parse_filters
 from utils.security import UserUtil
 from data.db.client import mongo_client
 from typing import Any
 import datetime as dt
+from urllib.parse import unquote
 
 sale_router = APIRouter(
     prefix="/sale",
     tags=["sale"]
 )
 
-@sale_router.get("/", response_model=ResponseModel)
-async def get_all_sales():
-     sales = [sale async for sale in mongo_client.sale.find({})]
-     return ResponseModel(content=sales)
+@sale_router.get("/", response_model=ResponseModel, dependencies=[Depends(UserUtil.is_atleast_admin)])
+async def get_all_sales(
+        fields: str = Query("", description="Fields to display.<br>Format: `field1,field2,..`"), 
+        in_filters: str = Query("", description="Filter by field matches.<br>Format: `customer_name=Ms.ABC.Mr.XYZ,mobile=+91 98104181041`"),
+        price_filter: str = Query("", description=(
+            'Filter by price bounds (boundary included). Will take precedence over __in_filters__ if provided.' + 
+            '<br>Format: Between 10000 and 20000 -> `10000,20000` (or) >= 100000 -> `100000`')),
+        sale_dt_filter: str = Query("", description=(
+            'Filter by sale date bounds (boundary included). Will take precedence over __in_filters__ if provided.' + 
+            '<br>Format: >= 2023-10-10 -> `2023-10-10,`'))
+    ):
+    
+    '''List all the sales. Requires user logged in to atleast be an admin.'''
+    
+    attrs = get_class_attributes(Sale)
+    filters = parse_filters(attrs, unquote(in_filters), price_filter, sale_dt_filter, price_field_name="price", dt_field_name="sale_date")
+    projection = parse_projections(fields, attrs)
+
+    sales = [sale async for sale in mongo_client.sale.find(filters, projection)]
+    if len(sales):
+        return ResponseModel(content=sales)
+    else:
+        return ResponseModel(status_code=status.HTTP_404_NOT_FOUND, message="No relevant results were found.")
 
 @sale_router.post("/", response_model=ResponseModel)
-async def sell_stock(sales_request_obj: SaleRequestObject = Body(...)):
+async def sell_stock(sales_request_obj: SaleRequestObject = Body(...), user: User = Depends(UserUtil.is_authenticated)):
+    '''Sell a particular stock, provided the stock is in valid status.'''
 
     # Get all the serial numbers
     stock_ids_for_sale: set[str] = {sale.serial for sale in sales_request_obj.sales}
@@ -43,9 +65,9 @@ async def sell_stock(sales_request_obj: SaleRequestObject = Body(...)):
                 serial=sale.serial,
                 price=sale.price,
                 sale_date=sales_request_obj.sale_date,
-                create_date=dt.datetime.utcnow(),
-                update_date=dt.datetime.utcnow(),
-                created_by=None,
+                create_date=user["AH_DATE"](),
+                created_by=user["AH_USER"],
+                update_date=None,
                 updated_by=None
             ) for sale in sales_request_obj.sales
         ]
@@ -57,7 +79,7 @@ async def sell_stock(sales_request_obj: SaleRequestObject = Body(...)):
                     stock_status_update_result = await mongo_client.stock.update_many(
                         filter={"serial": {"$in": list(stock_ids_for_sale)}}, 
                         update={"$set": {
-                            "current_status": StockStatusEnum.sold}, 
+                            "current_status": StockStatusEnum.sold}, "updated_by": user["AH_USER"], "update_date": user["AH_DATE"](),
                             "$push": {'status_history': {"status": StockStatusEnum.sold, "date": dt.datetime.utcnow()}}}, 
                         upsert=False
                     )
@@ -74,6 +96,7 @@ async def sell_stock(sales_request_obj: SaleRequestObject = Body(...)):
         
 @sale_router.delete("/{serial}", response_model=ResponseModel, dependencies=[Depends(UserUtil.is_owner)], deprecated=True)
 async def remove_sale(serial: str):
+    '''Remove a sale entry. Only owners have access to his API's functionality.'''
     data = await mongo_client.sale.delete_one({"serial": serial})
     if (data.deleted_count == 1):
         return ResponseModel(content=data.raw_result, message=f"Sale Object#: {serial} deleted successfully.")
@@ -81,7 +104,7 @@ async def remove_sale(serial: str):
         return ResponseModel(message=f"Sale serial#: {serial} not found.", status_code=status.HTTP_404_NOT_FOUND)
         
 @sale_router.patch("/swap", response_model=ResponseModel)
-async def swap_stock(sold_serial: str, exchange_with_serial: str, return_remarks: str):
+async def swap_stock(sold_serial: str, exchange_with_serial: str, return_remarks: str, user: User = Depends(UserUtil.is_authenticated)):
     '''
     Return a sold stock for a new one. Status of the sold stock would then be set to "returned".
     '''
@@ -96,19 +119,27 @@ async def swap_stock(sold_serial: str, exchange_with_serial: str, return_remarks
     ):
         async with await mongo_client.client.start_session() as sesssion:
             async with sesssion.start_transaction():
-                update_sale_result = await mongo_client.sale.update_one({"serial": sold_serial}, {"$set": {"serial": exchange_with_serial}})
+                
+                update_sale_result = await mongo_client.sale.update_one({"serial": sold_serial}, {"$set": {
+                    "serial": exchange_with_serial, "updated_by": user["AH_USER"], "update_date": user["AH_DATE"](),
+                }})
+
                 update_sold_stock_result = await mongo_client.stock.update_one(
                     filter={"serial": sold_serial}, 
                     update={
-                        "$set": {"current_status": StockStatusEnum.returned, "remarks": sold["remarks"] + " | " + return_remarks}, 
-                        "$push": {'status_history': {"status": StockStatusEnum.returned, "date": dt.datetime.utcnow()}}
+                        "$set": {
+                            "current_status": StockStatusEnum.returned, "remarks": sold["remarks"] + " | " + return_remarks, 
+                            "updated_by": user["AH_USER"], "update_date": user["AH_DATE"]()
+                        }, "$push": {'status_history': {"status": StockStatusEnum.returned, "date": dt.datetime.utcnow()}}
                     }
                 )
+
                 update_exchange_with_stock_result = await mongo_client.stock.update_one(
                     filter={"serial": exchange_with_serial}, 
                     update={
-                        "$set": {"current_status": StockStatusEnum.sold}, 
-                        "$push": {'status_history': {"status": StockStatusEnum.sold, "date": dt.datetime.utcnow()}}
+                        "$set": {
+                            "current_status": StockStatusEnum.sold, "updated_by": user["AH_USER"], "update_date": user["AH_DATE"]()
+                        }, "$push": {'status_history': {"status": StockStatusEnum.sold, "date": dt.datetime.utcnow()}}
                     }
                 )
                 if update_sale_result and update_sold_stock_result and update_exchange_with_stock_result:
