@@ -40,23 +40,6 @@ _Audit fields_: Created By, Create Date, Updated By, Update Date
 2. Admin: Access to all except viewing dashboards & reports. Has access to filters though. Can manage only users of type "user"
 2. User: Add stock, Sell stock, swap stock
 
-##### Podman Stuff
-Running mongo server with podman for development:
+##### Getting started:
 
-podman run --name impression-solutions -v ./db:/data/db -e MONGO_INITDB_ROOT_USERNAME=mongo -e MONGO_INITDB_ROOT_PASSWORD=secret -d mongo
-
-List all podman instances
-podman ps -a
-
-Stop the running process
-podman stop <name>
-
-Start the container
-podman start <name>
-
-Remove the container
-podman rm <name>
-
-##### Useful links
-
-1. Farm Stack Chat App: https://github.com/Vitaee/ChatApp/tree/main
+docker-compose --env-file ./backend/.env

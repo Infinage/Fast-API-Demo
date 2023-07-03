@@ -14,7 +14,7 @@ from data.models.user import User, UserTypeEnum
 
 ## Password hasing related
 class HashUtil:
-    pwd_context = CryptContext(schemes=settings["HASH.CYRPTCONTEXT.SCHEMES"].split(","), deprecated='auto')
+    pwd_context = CryptContext(schemes=settings["HASH_CYRPTCONTEXT.SCHEMES"].split(","), deprecated='auto')
 
     @staticmethod
     def get_password_hash(password: str) -> str:
@@ -28,9 +28,9 @@ class HashUtil:
 class JWTUtil:
 
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="user/login")
-    SECRET_KEY = settings["JWT.JWT_SECRET_KEY"]
-    ALGORITHM = settings["JWT.ALGORITHM"]
-    ACCESS_TOKEN_EXPIRE_MINUTES = int(settings["JWT.ACCESS_TOKEN_EXPIRE_MINUTES"])
+    SECRET_KEY = settings["JWT_SECRET_KEY"]
+    ALGORITHM = settings["JWT_ALGORITHM"]
+    ACCESS_TOKEN_EXPIRE_MINUTES = int(settings["JWT_ACCESS_TOKEN_EXPIRE_MINUTES"])
 
     class TokenModel(BaseModel):
         access_token: str

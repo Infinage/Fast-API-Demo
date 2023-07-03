@@ -48,7 +48,7 @@ async def create_user(logged_in_user: Annotated[User, Depends(JWTUtil.get_curren
 @user_router.post("/login", response_model=JWTUtil.TokenModel)
 async def login_user_for_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     user_in_db = await mongo_client.user.find_one({"username": form_data.username})
-    pwd_match = HashUtil.verify_password(form_data.password, user_in_db["password"])
+    pwd_match = HashUtil.verify_password(form_data.password, user_in_db["password"]) if (user_in_db) else False
     if (user_in_db and not user_in_db["disabled"] and pwd_match):
         token = JWTUtil.generate_access_token({"sub": user_in_db["username"]})
         return {"access_token": token, "token_type": "bearer"}
