@@ -1,23 +1,69 @@
 #### Tech stack
 
-Backend using FAST API (Python)
-Frontend using Flutter (Dart)
-Database using mongodb
-
-Distribute as a docker containers
+- Backend using FAST API (Python) 
+- Frontend using Flutter (Dart) 
+- Database using mongodb 
+- Distribute as a docker containers 
 
 #### Notes:
+##### Database Schema
 
-##### Database stuff
+###### **Config**
+| Column             | Data Type  |
+|--------------------|-----------|
+| brand             | TEXT      |
+| model             | TEXT      |
+| model#            | TEXT      |
+| screen_size       | TEXT      |
+| hdd_size          | TEXT      |
+| ssd_size          | TEXT      |
+| processor_brand   | TEXT      |
+| processor_type    | TEXT      |
+| processor_speed   | TEXT      |
+| ram              | TEXT      |
+| graphics_card     | TEXT      |
+| os               | TEXT      |
+| price            | DECIMAL   |
+| warranty         | TEXT      |
+| cloned_stocks    | INTEGER   |
 
-config - brand, model, model#, screen size, hdd size, ssd size, Processor Brand, Processor Type, Processor Speed, RAM, Graphics card, OS, Price, warranty, cloned stocks #
-stock - serial#, ...config, purchase date, warranty end date, remarks, 
-        status { (sold, deleted, new, old (refurbished) ), timestamp },
-        current status
-sale - serial#, price, sale_date, customer name, mobile, address, remarks
-user - username, type, password
+###### **Stock**
+| Column             | Data Type  |
+|--------------------|-----------|
+| serial#           | TEXT (Primary Key) |
+| ...config         | (References `config`) |
+| purchase_date     | DATE      |
+| warranty_end_date | DATE      |
+| remarks          | TEXT      |
+| status           | ENUM ('sold', 'deleted', 'new', 'old (refurbished)') |
+| timestamp        | TIMESTAMP |
+| current_status   | TEXT      |
 
-_Audit fields_: Created By, Create Date, Updated By, Update Date
+###### **Sale**
+| Column       | Data Type  |
+|-------------|-----------|
+| serial#     | TEXT (Foreign Key -> Stock) |
+| price       | DECIMAL   |
+| sale_date   | DATE      |
+| customer_name | TEXT    |
+| mobile      | TEXT      |
+| address     | TEXT      |
+| remarks     | TEXT      |
+
+###### **User**
+| Column   | Data Type  |
+|----------|-----------|
+| username | TEXT (Primary Key) |
+| type     | TEXT (e.g., 'admin', 'sales') |
+| password | TEXT      |
+
+###### **Audit Fields (Common for All Tables)**
+| Column       | Data Type  |
+|-------------|-----------|
+| created_by  | TEXT (Foreign Key -> User) |
+| create_date | TIMESTAMP |
+| updated_by  | TEXT (Foreign Key -> User) |
+| update_date | TIMESTAMP |
 
 ##### TODO
 
